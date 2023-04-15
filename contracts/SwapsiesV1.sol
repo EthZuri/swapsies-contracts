@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
 contract SwapsiesV1 {
     struct Ask {
@@ -23,7 +22,7 @@ contract SwapsiesV1 {
         address filler,
         address askerToken,
         uint256 askerAmount,
-        address fillerToken,        
+        address fillerToken,
         uint256 fillerAmount
     ) external {
         require(
@@ -63,8 +62,10 @@ contract SwapsiesV1 {
 
     function fillAsk(bytes32 askHash) external isAskActive(askHash) {
         Ask memory ask = asks[askHash];
-        console.log("Expected Filler: ", ask.filler, " - actual sender: ", msg.sender);
-        require(ask.filler == msg.sender, "Only party B can fill the ask");
+        require(
+            ask.filler == msg.sender,
+            "Only the designated filler can fill the ask"
+        );
 
         IERC20 askerToken = IERC20(ask.askerToken);
         IERC20 fillerToken = IERC20(ask.fillerToken);
