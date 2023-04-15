@@ -21,8 +21,6 @@ describe("SwapsiesV2", function () {
     await tokenB.mint(bob.address, ethers.utils.parseEther("100"));
     await tokenC.mint(alice.address, ethers.utils.parseEther("500"));
     await tokenC.mint(bob.address, ethers.utils.parseEther("500"));
-    await tokenC.mint(bob.address, ethers.utils.parseEther("500"));
-    await tokenC.mint(bob.address, ethers.utils.parseEther("500"));
     await nftA.safeMint(alice.address);
     await nftA.safeMint(bob.address);
     await nftB.safeMint(alice.address);
@@ -194,7 +192,28 @@ describe("SwapsiesV2", function () {
           )
       ).to.be.ok;
 
-      
+      expect(await swapsies.connect(bob).fillAsk(askHash)).to.be.ok;
+      // Check ERC20 token balances after filling the ask
+      expect(await tokenA.balanceOf(alice.address)).to.equal(
+        ethers.utils.parseEther("100").sub(askerAmount)
+      );
+      expect(await tokenA.balanceOf(bob.address)).to.equal(askerAmount);
+      expect(await tokenB.balanceOf(alice.address)).to.equal(fillerAmount);
+      expect(await tokenB.balanceOf(bob.address)).to.equal(
+        ethers.utils.parseEther("100").sub(fillerAmount)
+      );
+      expect(await tokenC.balanceOf(alice.address)).to.equal(
+        ethers.utils.parseEther("500").sub(askerAmount)
+      );
+      expect(await tokenC.balanceOf(bob.address)).to.equal(
+        ethers.utils.parseEther("500").add(askerAmount)
+      );
+
+      // Check ERC721 token ownership after filling the ask
+      expect(await nftA.ownerOf(0)).to.equal(bob.address);
+      expect(await nftA.ownerOf(1)).to.equal(alice.address);
+      expect(await nftB.ownerOf(0)).to.equal(bob.address);
+      expect(await nftB.ownerOf(1)).to.equal(alice.address);
     });
 
     it("Should fail if the ask is not active", async function () {
