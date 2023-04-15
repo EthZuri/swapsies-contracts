@@ -70,44 +70,144 @@ describe("SwapsiesV1", function () {
     });
 
     it("Should fail if the askHash already exists", async function () {
-      const { swapsies } = await deploySwapsiesFixture();
+      const { swapsies, tokenA, tokenB, alice, bob } = await deploySwapsiesFixture();
 
-      // Add the necessary parameters for the createAsk function
-      // ...
+      const askerAmount = ethers.utils.parseEther("0.25");
+      const fillerAmount = ethers.utils.parseEther("0.5");
 
-      // Call the createAsk function once
+      // create ask object
+
+      const data = {
+        asker: alice.address,
+        filler: bob.address,
+        askerToken: tokenA.address,
+        askerAmount: askerAmount,
+        fillerToken: tokenB.address,
+        fillerAmount: fillerAmount,
+      };
+
+      // compute hash
+
+      const askHash = ethers.utils.id(JSON.stringify(data));
+
       // Call the createAsk function again with the same askHash and expect it to be reverted
+      expect( await swapsies
+        .connect(alice)
+        .createAsk(
+          askHash,
+          alice.address,
+          bob.address,
+          tokenA.address,
+          askerAmount,
+          tokenB.address,
+          fillerAmount
+        )
+      ).to.be.revertedWith("Ask hash already exists");
     });
   });
 
+  
   describe("Cancel Ask", function () {
     it("Should cancel an ask successfully", async function () {
-      const { swapsies } = await deploySwapsiesFixture();
+      const { swapsies, tokenA, tokenB, alice, bob  } = await deploySwapsiesFixture();
+      const askerAmount = ethers.utils.parseEther("0.25");
+      const fillerAmount = ethers.utils.parseEther("0.5");
 
-      // Add the necessary parameters for the createAsk function
-      // ...
+      const data = {
+        asker: alice.address,
+        filler: bob.address,
+        askerToken: tokenA.address,
+        askerAmount: askerAmount,
+        fillerToken: tokenB.address,
+        fillerAmount: fillerAmount,
+      };
 
-      // Call the createAsk function
-      // Call the cancelAsk function and check for success (e.g., using events, or checking the activeAsks mapping)
+      const askHash = ethers.utils.id(JSON.stringify(data));
+
+
+      await swapsies
+      .connect(alice)
+      .createAsk(
+        askHash,
+        alice.address,
+        bob.address,
+        tokenA.address,
+        askerAmount,
+        tokenB.address,
+        fillerAmount
+      );
+    
+      expect(await swapsies.isActive(askHash)).to.be.true;
+
+      const tx = await swapsies
+      .connect(alice)
+      .cancelAsk(askHash);
+
+      expect(tx)
+        .to.emit(swapsies, "AskCancelled")
+        .withArgs(alice.address, askHash, askerAmount, tokenB.address, fillerAmount);
+
+      const isActive = await swapsies.isActive(askHash);
+      expect(isActive).to.be.false;
     });
 
     it("Should fail if the ask is not active", async function () {
-      const { swapsies } = await deploySwapsiesFixture();
+      const { swapsies, tokenA, tokenB, alice, bob  } = await deploySwapsiesFixture();
+      const askerAmount = ethers.utils.parseEther("0.251");
+      const fillerAmount = ethers.utils.parseEther("0.5");
 
-      // Add the necessary parameters for the cancelAsk function
-      // ...
+      const data = {
+        asker: alice.address,
+        filler: bob.address,
+        askerToken: tokenA.address,
+        askerAmount: askerAmount,
+        fillerToken: tokenB.address,
+        fillerAmount: fillerAmount,
+      };
 
-      // Call the cancelAsk function and expect it to be reverted
+      const askHash = ethers.utils.id(JSON.stringify(data));
+
+      expect(await swapsies.isActive(askHash)).to.be.false;
+
+      await expect(swapsies
+        .connect(alice)
+        .cancelAsk(askHash)).to.be.revertedWith(
+        "Ask is not active"
+      );
     });
 
     it("Should fail if the asker is not the sender", async function () {
-      const { swapsies } = await deploySwapsiesFixture();
+      const { swapsies, tokenA, tokenB, alice, bob  } = await deploySwapsiesFixture();
+      const askerAmount = ethers.utils.parseEther("0.251");
+      const fillerAmount = ethers.utils.parseEther("0.5");
 
-      // Add the necessary parameters for the createAsk and cancelAsk functions
-      // ...
+      const data = {
+        asker: alice.address,
+        filler: bob.address,
+        askerToken: tokenA.address,
+        askerAmount: askerAmount,
+        fillerToken: tokenB.address,
+        fillerAmount: fillerAmount,
+      };
 
-      // Call the createAsk function
-      // Call the cancelAsk function with a different sender and expect it to be reverted
+      const askHash = ethers.utils.id(JSON.stringify(data));
+      await swapsies
+      .connect(alice)
+      .createAsk(
+        askHash,
+        alice.address,
+        bob.address,
+        tokenA.address,
+        askerAmount,
+        tokenB.address,
+        fillerAmount
+      );
+
+      await expect(swapsies
+        .connect(bob)
+        .cancelAsk(askHash)).to.be.revertedWith(
+        "Only the asker can cancel the ask"
+      );
     });
   });
 
@@ -168,22 +268,90 @@ describe("SwapsiesV1", function () {
     });
 
     it("Should fail if the ask is not active", async function () {
-      const { swapsies } = await deploySwapsiesFixture();
+      const { swapsies, tokenA, tokenB, alice, bob } =
+        await deploySwapsiesFixture();
 
-      // Add the necessary parameters for the fillAsk function
-      // ...
+      // Add the necessary parameters for the createAsk function
+      const askerAmount = ethers.utils.parseEther("0.25");
+      const fillerAmount = ethers.utils.parseEther("0.5");
 
-      // Call the fillAsk function and expect it to be reverted
+      // create ask object
+
+      const data = {
+        asker: alice.address,
+        filler: bob.address,
+        askerToken: tokenA.address,
+        askerAmount: askerAmount,
+        fillerToken: tokenB.address,
+        fillerAmount: fillerAmount,
+      };
+
+      console.log("alice: ", alice.address);
+      console.log("bob: ", bob.address);
+
+      // compute hash
+
+      const askHash = ethers.utils.id(JSON.stringify(data));
+
+      // approve for ask
+      expect(await tokenA.connect(alice).approve(swapsies.address, askerAmount))
+        .to.be.ok;
+    
+      // approve for fill
+      expect(tokenB.connect(bob).approve(swapsies.address, fillerAmount)).to.be
+        .ok;
+
+      // fill
+      expect(await swapsies.isActive(askHash)).to.be.false;
+      await expect(swapsies.connect(bob).fillAsk(askHash)).to.be.revertedWith('Ask is not active');
     });
 
     it("Should fail if the filler is not the sender", async function () {
-      const { swapsies } = await deploySwapsiesFixture();
+      const { swapsies, tokenA, tokenB, alice, bob } =
+      await deploySwapsiesFixture();
 
-      // Add the necessary parameters for the createAsk and fillAsk functions
-      // ...
+      // Add the necessary parameters for the createAsk function
+      const askerAmount = ethers.utils.parseEther("0.25");
+      const fillerAmount = ethers.utils.parseEther("0.5");
+
+      // create ask object
+
+      const data = {
+        asker: alice.address,
+        filler: bob.address,
+        askerToken: tokenA.address,
+        askerAmount: askerAmount,
+        fillerToken: tokenB.address,
+        fillerAmount: fillerAmount,
+      };
+      const askHash = ethers.utils.id(JSON.stringify(data));
 
       // Call the createAsk function
+      // approve for ask
+      expect(await tokenA.connect(alice).approve(swapsies.address, askerAmount))
+      .to.be.ok;
+      // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
+      expect(
+        await swapsies
+          .connect(alice)
+          .createAsk(
+            askHash,
+            alice.address,
+            bob.address,
+            tokenA.address,
+            askerAmount,
+            tokenB.address,
+            fillerAmount
+          )
+      ).to.be.ok;
+
       // Call the fillAsk function with a different sender and expect it to be reverted
+      // approve for fill
+      expect(tokenB.connect(bob).approve(swapsies.address, fillerAmount)).to.be
+      .ok;
+    
+      // fill
+      await expect(swapsies.connect(alice).fillAsk(askHash)).to.be.revertedWith('Only the designated filler can fill the ask');
     });
   });
 });
