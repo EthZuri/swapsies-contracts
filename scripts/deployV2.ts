@@ -7,7 +7,7 @@ async function main() {
   await swapsiesV2.deployed();
 
   console.log(
-    `Swapsies deployed at deployed to ${swapsiesV2.address}`
+    `SwapsiesV2 deployed to ${swapsiesV2.address}`
   );
 }
 
