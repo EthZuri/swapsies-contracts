@@ -10,7 +10,10 @@ contract TestNFT is ERC721, Ownable {
 
     Counters.Counter private _tokenIdCounter;
 
-    constructor() ERC721("TestNFT", "NFT") {}
+    constructor(
+        string memory name,
+        string memory ticker
+    ) ERC721(name, ticker) {}
 
     function safeMint(address to) public onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();

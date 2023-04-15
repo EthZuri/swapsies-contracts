@@ -1,13 +1,13 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const SwapsiesV1 = await ethers.getContractFactory("SwapsiesV1");
-  const swapsiesV1 = await SwapsiesV1.deploy();
+  const SwapsiesV2 = await ethers.getContractFactory("SwapsiesV2");
+  const swapsiesV2 = await SwapsiesV2.deploy();
 
-  await swapsiesV1.deployed();
+  await swapsiesV2.deployed();
 
   console.log(
-    `SwapsiesV1 deployed to ${swapsiesV1.address}`
+    `SwapsiesV2 deployed to ${swapsiesV2.address}`
   );
 }
 
