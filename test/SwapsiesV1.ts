@@ -231,11 +231,7 @@ describe("SwapsiesV1", function () {
         fillerAmount: fillerAmount,
       };
 
-      console.log("alice: ", alice.address);
-      console.log("bob: ", bob.address);
-
       // compute hash
-
       const askHash = ethers.utils.id(JSON.stringify(data));
 
       // approve for ask
@@ -286,11 +282,7 @@ describe("SwapsiesV1", function () {
         fillerAmount: fillerAmount,
       };
 
-      console.log("alice: ", alice.address);
-      console.log("bob: ", bob.address);
-
       // compute hash
-
       const askHash = ethers.utils.id(JSON.stringify(data));
 
       // approve for ask
