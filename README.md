@@ -24,17 +24,10 @@ Key features of SwapsiesV2 include:
 - Cancel an ask
 - Fill an ask to execute the token swap, including ERC20 and ERC721 token bundles
 
-## Getting Started
+## Notes 
 
-To get started with Swapsies, you'll need to clone the repository and install the required dependencies:
-
-1. Clone the repository:
-
-git clone https://github.com/yourusername/swapsies.git
-
-2. Install dependencies:
-
-yarn install
+1. Currently the contracts keep the Asks on-chain. This choice was made for the hackathon for ease-of-use, as it lacks in efficiency. We recognize that (since the swap matching happens off-chain) we could only be storing the hashes of the Asks instead of the full object, while keeping the latter off-chain.
+2. Our createAsk & createFill methods proved to be too complex for the Biconomy server to be able to handle it in a batch transaction. This was verified to us on their Discord. It needs to be investigated further how to mitigate this. Of course, the contracts don't require batching of transactions to work; nevertheless, we managed to commit some batched transactions (with paymaster support) as explained in our devfolio submission.
 
 ## License
 
