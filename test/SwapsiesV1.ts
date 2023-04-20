@@ -76,7 +76,6 @@ describe("SwapsiesV1", function () {
       const fillerAmount = ethers.utils.parseEther("0.5");
 
       // create ask object
-
       const data = {
         asker: alice.address,
         filler: bob.address,
@@ -87,7 +86,6 @@ describe("SwapsiesV1", function () {
       };
 
       // compute hash
-
       const askHash = ethers.utils.id(JSON.stringify(data));
 
       // Call the createAsk function again with the same askHash and expect it to be reverted
