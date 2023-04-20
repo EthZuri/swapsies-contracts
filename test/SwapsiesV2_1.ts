@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { Ask, AskAbiType } from "./utils/Ask";
 
 describe("SwapsiesV2_1", function () {
   async function deploySwapsiesFixture() {
@@ -46,8 +47,8 @@ describe("SwapsiesV2_1", function () {
       const fillerAmount = ethers.utils.parseEther("0.5");
 
       // create ask object
-
-      const data = {
+      // Create an Ask object
+      const ask: Ask = {
         asker: alice.address,
         filler: bob.address,
         askerERC20: {
@@ -69,31 +70,22 @@ describe("SwapsiesV2_1", function () {
       };
 
       // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
+      const askHash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode([AskAbiType], [ask]));
+    
+      console.log(askHash);
 
       // give approval? Should the smart contract expect approval before the Ask is posted?
 
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
-      expect(
-        await swapsies
-          .connect(alice)
-          .createAsk(
-            data.asker,
-            data.filler,
-            data.askerERC20,
-            data.askerERC721,
-            data.fillerERC20,
-            data.fillerERC721
-          )
-      ).to.be.ok;
+      expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
 
       expect(await swapsies.isActive(askHash)).to.be.true;
     });
 
     it("Should fail if the askHash already exists", async function () {
       const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-      await deploySwapsiesFixture();
+        await deploySwapsiesFixture();
 
       // Add the necessary parameters for the createAsk function
       const askerAmount = ethers.utils.parseEther("0.25");
@@ -142,10 +134,9 @@ describe("SwapsiesV2_1", function () {
 
       expect(await swapsies.isActive(askHash)).to.be.true;
 
-      
       // Call the createAsk function again with the same askHash and expect it to be reverted
       await expect(
-          swapsies
+        swapsies
           .connect(alice)
           .createAsk(
             askHash,
@@ -156,14 +147,16 @@ describe("SwapsiesV2_1", function () {
             data.fillerERC20,
             data.fillerERC721
           )
-      ).to.be.revertedWith('The ask you are trying to submit is already active');
+      ).to.be.revertedWith(
+        "The ask you are trying to submit is already active"
+      );
     });
   });
 
   describe("Cancel Ask", function () {
     it("Should cancel an ask successfully", async function () {
       const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-      await deploySwapsiesFixture();
+        await deploySwapsiesFixture();
 
       // Add the necessary parameters for the createAsk function
       const askerAmount = ethers.utils.parseEther("0.25");
@@ -195,7 +188,7 @@ describe("SwapsiesV2_1", function () {
       // compute hash
       const askHash = ethers.utils.id(JSON.stringify(data));
 
-     // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
+      // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
       expect(
         await swapsies
           .connect(alice)
@@ -212,14 +205,12 @@ describe("SwapsiesV2_1", function () {
 
       expect(await swapsies.isActive(askHash)).to.be.true;
       // Call the cancelAsk function and check for success (e.g., using events, or checking the activeAsks mapping)
-      await expect(swapsies
-        .connect(alice)
-        .cancelAsk(askHash)).to.be.ok;
+      await expect(swapsies.connect(alice).cancelAsk(askHash)).to.be.ok;
     });
 
     it("Should fail if the ask is not active", async function () {
       const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-      await deploySwapsiesFixture();
+        await deploySwapsiesFixture();
 
       // Add the necessary parameters for the createAsk function
       const askerAmount = ethers.utils.parseEther("0.25");
@@ -254,16 +245,14 @@ describe("SwapsiesV2_1", function () {
       expect(await swapsies.isActive(askHash)).to.be.false;
 
       // Call the cancelAsk function and expect it to be reverted
-      await expect(swapsies
-        .connect(alice)
-        .cancelAsk(askHash)).to.be.revertedWith(
-        "Ask is not active"
-      );
+      await expect(
+        swapsies.connect(alice).cancelAsk(askHash)
+      ).to.be.revertedWith("Ask is not active");
     });
 
     it("Should fail if the asker is not the sender", async function () {
       const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-      await deploySwapsiesFixture();
+        await deploySwapsiesFixture();
 
       // Add the necessary parameters for the createAsk function
       const askerAmount = ethers.utils.parseEther("0.25");
@@ -295,7 +284,7 @@ describe("SwapsiesV2_1", function () {
       // compute hash
       const askHash = ethers.utils.id(JSON.stringify(data));
 
-     // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
+      // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
       expect(
         await swapsies
           .connect(alice)
@@ -310,9 +299,7 @@ describe("SwapsiesV2_1", function () {
           )
       ).to.be.ok;
       // Call the cancelAsk function with a different sender and expect it to be reverted
-      await expect(swapsies
-        .connect(bob)
-        .cancelAsk(askHash)).to.be.revertedWith(
+      await expect(swapsies.connect(bob).cancelAsk(askHash)).to.be.revertedWith(
         "Only the asker can cancel the ask"
       );
     });
@@ -402,7 +389,7 @@ describe("SwapsiesV2_1", function () {
 
     it("Should fail if the ask is not active", async function () {
       const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-      await deploySwapsiesFixture();
+        await deploySwapsiesFixture();
 
       // Add the necessary parameters for the createAsk function
       const askerAmount = ethers.utils.parseEther("0.25");
@@ -449,7 +436,7 @@ describe("SwapsiesV2_1", function () {
 
     it("Should fail if the filler is not the sender", async function () {
       const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-      await deploySwapsiesFixture();
+        await deploySwapsiesFixture();
 
       // Add the necessary parameters for the createAsk function
       const askerAmount = ethers.utils.parseEther("0.25");
@@ -505,8 +492,9 @@ describe("SwapsiesV2_1", function () {
       ).to.be.ok;
 
       // Call the fillAsk function with a different sender and expect it to be reverted
-      await expect(swapsies.connect(alice).fillAsk(askHash)).to.be.revertedWith('Only the designated filler can fill the ask');
-      
+      await expect(swapsies.connect(alice).fillAsk(askHash)).to.be.revertedWith(
+        "Only the designated filler can fill the ask"
+      );
     });
   });
 });

@@ -30,41 +30,27 @@ contract SwapsiesV2_1 {
     mapping(bytes32 => bool) private activeAsks;
 
     function createAsk(
-        address asker,
-        address filler,
-        ERC20Bundle calldata askerERC20,
-        ERC721Bundle calldata askerERC721,
-        ERC20Bundle calldata fillerERC20,
-        ERC721Bundle calldata fillerERC721
+        Ask calldata ask
     ) external returns (bytes32) {
-        require(asker == msg.sender, "The asker has to be the sender");
+        require(ask.asker == msg.sender, "The asker has to be the sender");
         // Ensure the lengths of the arrays in the bundles are the same
         require(
-            askerERC20.tokens.length == askerERC20.amounts.length,
+            ask.askerERC20.tokens.length == ask.askerERC20.amounts.length,
             "Asker's ERC20 tokens and amounts arrays must have the same length"
         );
         require(
-            fillerERC20.tokens.length == fillerERC20.amounts.length,
+            ask.fillerERC20.tokens.length == ask.fillerERC20.amounts.length,
             "Filler's ERC20 tokens and amounts arrays must have the same length"
         );
         require(
-            askerERC721.tokens.length == askerERC721.tokenIds.length,
+            ask.askerERC721.tokens.length == ask.askerERC721.tokenIds.length,
             "Asker's ERC721 tokens and tokenIds arrays must have the same length"
         );
         require(
-            fillerERC721.tokens.length == fillerERC721.tokenIds.length,
+            ask.fillerERC721.tokens.length == ask.fillerERC721.tokenIds.length,
             "Filler's ERC721 tokens and tokenIds arrays must have the same length"
         );
-
-        // create Ask struct in memory
-        Ask memory ask = Ask({
-            asker: asker,
-            filler: filler,
-            askerERC20: askerERC20,
-            askerERC721: askerERC721,
-            fillerERC20: fillerERC20,
-            fillerERC721: fillerERC721
-        });
+        
         // Compute the ask hash
         bytes32 askHash = keccak256(abi.encode(ask));
 
