@@ -79,7 +79,6 @@ describe("SwapsiesV2_1", function () {
         await swapsies
           .connect(alice)
           .createAsk(
-            askHash,
             data.asker,
             data.filler,
             data.askerERC20,
