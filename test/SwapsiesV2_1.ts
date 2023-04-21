@@ -116,7 +116,7 @@ describe("SwapsiesV2_1", function () {
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
       expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
       expect(await swapsies.isActive(askHash)).to.be.true;
-      
+
       // Call the cancelAsk function and check for success (e.g., using events, or checking the activeAsks mapping)
       await expect(swapsies.connect(alice).cancelAsk(askHash)).to.be.ok;
     });
@@ -220,77 +220,39 @@ describe("SwapsiesV2_1", function () {
 
   describe("Fill Ask", function () {
     it("Should fill an ask successfully", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
+      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob, ask } =
         await deploySwapsiesFixture();
 
-      // Add the necessary parameters for the createAsk function
-      const askerAmount = ethers.utils.parseEther("0.25");
-      const fillerAmount = ethers.utils.parseEther("0.5");
-
-      // create ask object
-      const data = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
-
       // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
+      const askHash = computeAskHash(ask);
 
       // Approve token transfers for both ERC20 and ERC721 tokens
-      await tokenA.connect(alice).approve(swapsies.address, askerAmount);
-      await tokenC.connect(alice).approve(swapsies.address, askerAmount);
-      await tokenB.connect(bob).approve(swapsies.address, fillerAmount);
-      await nftA.connect(alice).approve(swapsies.address, 0);
-      await nftB.connect(alice).approve(swapsies.address, 0);
-      await nftA.connect(bob).approve(swapsies.address, 1);
-      await nftB.connect(bob).approve(swapsies.address, 1);
+      await tokenA.connect(alice).approve(swapsies.address, ask.askerERC20.amounts[0]);
+      await tokenC.connect(alice).approve(swapsies.address, ask.askerERC20.amounts[1]);
+      await tokenB.connect(bob).approve(swapsies.address, ask.fillerERC20.amounts[0]);
+      await nftA.connect(alice).approve(swapsies.address, ask.askerERC721.tokenIds[0]);
+      await nftB.connect(alice).approve(swapsies.address, ask.askerERC721.tokenIds[1]);
+      await nftA.connect(bob).approve(swapsies.address, ask.fillerERC721.tokenIds[0]);
+      await nftB.connect(bob).approve(swapsies.address, ask.fillerERC721.tokenIds[1]);
 
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
-      expect(
-        await swapsies
-          .connect(alice)
-          .createAsk(
-            askHash,
-            data.asker,
-            data.filler,
-            data.askerERC20,
-            data.askerERC721,
-            data.fillerERC20,
-            data.fillerERC721
-          )
-      ).to.be.ok;
+      expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
 
-      expect(await swapsies.connect(bob).fillAsk(askHash)).to.be.ok;
+      expect(await swapsies.connect(bob).fillAsk(askHash, ask)).to.be.ok;
       // Check ERC20 token balances after filling the ask
       expect(await tokenA.balanceOf(alice.address)).to.equal(
-        ethers.utils.parseEther("100").sub(askerAmount)
+        ethers.utils.parseEther("100").sub(ask.askerERC20.amounts[0])
       );
-      expect(await tokenA.balanceOf(bob.address)).to.equal(askerAmount);
-      expect(await tokenB.balanceOf(alice.address)).to.equal(fillerAmount);
+      expect(await tokenA.balanceOf(bob.address)).to.equal(ask.askerERC20.amounts[0]);
+      expect(await tokenB.balanceOf(alice.address)).to.equal(ask.fillerERC20.amounts[0]);
       expect(await tokenB.balanceOf(bob.address)).to.equal(
-        ethers.utils.parseEther("100").sub(fillerAmount)
+        ethers.utils.parseEther("100").sub(ask.fillerERC20.amounts[0])
       );
       expect(await tokenC.balanceOf(alice.address)).to.equal(
-        ethers.utils.parseEther("500").sub(askerAmount)
+        ethers.utils.parseEther("500").sub(ask.askerERC20.amounts[1])
       );
       expect(await tokenC.balanceOf(bob.address)).to.equal(
-        ethers.utils.parseEther("500").add(askerAmount)
+        ethers.utils.parseEther("500").add(ask.askerERC20.amounts[1])
       );
 
       // Check ERC721 token ownership after filling the ask
