@@ -2,6 +2,12 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Ask, AskAbiType } from "./utils/Ask";
 
+function computeAskHash(ask: Ask) {
+  return ethers.utils.keccak256(
+    ethers.utils.defaultAbiCoder.encode([AskAbiType], [ask])
+  );
+}
+
 describe("SwapsiesV2_1", function () {
   async function deploySwapsiesFixture() {
     // Deploy the Swapsies contract
@@ -27,7 +33,33 @@ describe("SwapsiesV2_1", function () {
     await nftB.safeMint(alice.address);
     await nftB.safeMint(bob.address);
 
-    return { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob };
+    //create Ask for testing
+    // Add the necessary parameters for the createAsk function
+    const askerAmount = ethers.utils.parseEther("0.25");
+    const fillerAmount = ethers.utils.parseEther("0.5");
+
+    const ask: Ask = {
+      asker: alice.address,
+      filler: bob.address,
+      askerERC20: {
+        tokens: [tokenA.address, tokenC.address],
+        amounts: [askerAmount, askerAmount],
+      },
+      askerERC721: {
+        tokens: [nftA.address, nftB.address],
+        tokenIds: [0, 0],
+      },
+      fillerERC20: {
+        tokens: [tokenB.address],
+        amounts: [fillerAmount],
+      },
+      fillerERC721: {
+        tokens: [nftA.address, nftB.address],
+        tokenIds: [1, 1],
+      },
+    };
+
+    return { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob, ask };
   }
 
   describe("Deployment", function () {
@@ -39,42 +71,10 @@ describe("SwapsiesV2_1", function () {
 
   describe("Create Ask", function () {
     it("Should create an ask successfully", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-        await deploySwapsiesFixture();
-
-      // Add the necessary parameters for the createAsk function
-      const askerAmount = ethers.utils.parseEther("0.25");
-      const fillerAmount = ethers.utils.parseEther("0.5");
-
-      // create ask object
-      // Create an Ask object
-      const ask: Ask = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
+      const { swapsies, alice, ask } = await deploySwapsiesFixture();
 
       // compute hash
-      const askHash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode([AskAbiType], [ask]));
-    
-      console.log(askHash);
-
-      // give approval? Should the smart contract expect approval before the Ask is posted?
+      const askHash = computeAskHash(ask);
 
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
@@ -84,70 +84,22 @@ describe("SwapsiesV2_1", function () {
     });
 
     it("Should fail if the askHash already exists", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
+      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob, ask } =
         await deploySwapsiesFixture();
 
       // Add the necessary parameters for the createAsk function
       const askerAmount = ethers.utils.parseEther("0.25");
       const fillerAmount = ethers.utils.parseEther("0.5");
 
-      // create ask object
-
-      const data = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
-
       // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
+      const askHash = computeAskHash(ask);
 
       // Call the createAsk function once
-      expect(
-        await swapsies
-          .connect(alice)
-          .createAsk(
-            askHash,
-            data.asker,
-            data.filler,
-            data.askerERC20,
-            data.askerERC721,
-            data.fillerERC20,
-            data.fillerERC721
-          )
-      ).to.be.ok;
-
+      expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
       expect(await swapsies.isActive(askHash)).to.be.true;
 
       // Call the createAsk function again with the same askHash and expect it to be reverted
-      await expect(
-        swapsies
-          .connect(alice)
-          .createAsk(
-            askHash,
-            data.asker,
-            data.filler,
-            data.askerERC20,
-            data.askerERC721,
-            data.fillerERC20,
-            data.fillerERC721
-          )
-      ).to.be.revertedWith(
+      await expect(swapsies.connect(alice).createAsk(ask)).to.be.revertedWith(
         "The ask you are trying to submit is already active"
       );
     });
@@ -155,55 +107,16 @@ describe("SwapsiesV2_1", function () {
 
   describe("Cancel Ask", function () {
     it("Should cancel an ask successfully", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
+      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob, ask } =
         await deploySwapsiesFixture();
 
-      // Add the necessary parameters for the createAsk function
-      const askerAmount = ethers.utils.parseEther("0.25");
-      const fillerAmount = ethers.utils.parseEther("0.5");
-
-      // create ask object
-
-      const data = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
-
       // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
+      const askHash = computeAskHash(ask);
 
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
-      expect(
-        await swapsies
-          .connect(alice)
-          .createAsk(
-            askHash,
-            data.asker,
-            data.filler,
-            data.askerERC20,
-            data.askerERC721,
-            data.fillerERC20,
-            data.fillerERC721
-          )
-      ).to.be.ok;
-
+      expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
       expect(await swapsies.isActive(askHash)).to.be.true;
+      
       // Call the cancelAsk function and check for success (e.g., using events, or checking the activeAsks mapping)
       await expect(swapsies.connect(alice).cancelAsk(askHash)).to.be.ok;
     });
