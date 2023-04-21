@@ -26,7 +26,6 @@ contract SwapsiesV2_1 {
         uint256[] tokenIds;
     }
 
-    //mapping(bytes32 => Ask) private asks;
     mapping(bytes32 => bool) private activeAsks;
 
     function createAsk(
@@ -68,10 +67,6 @@ contract SwapsiesV2_1 {
         _;
     }
 
-    /*function getAsk(bytes32 askHash) public view returns (Ask memory) {
-        return asks[askHash];
-    }*/
-
     function isActive(bytes32 askHash) public view returns (bool) {
         return activeAsks[askHash];
     }
@@ -80,13 +75,11 @@ contract SwapsiesV2_1 {
         bytes32 askHash,
         Ask calldata ask
     ) external isAskActive(askHash) {
-        //Ask memory ask = asks[askHash];
-
         // Verify that the provided Ask struct matches the askHash
         bytes32 computedAskHash = keccak256(abi.encode(ask));
         require(
             computedAskHash == askHash,
-            "Provided Ask does not match the computed hash"
+            "Provided hash does not match the computed hash"
         );
         require(ask.asker == msg.sender, "Only the asker can cancel the ask");
 
@@ -97,12 +90,11 @@ contract SwapsiesV2_1 {
         bytes32 askHash,
         Ask calldata ask
     ) external isAskActive(askHash) {
-        //Ask memory ask = asks[askHash];
         // Verify that the provided Ask struct matches the askHash
         bytes32 computedAskHash = keccak256(abi.encode(ask));
         require(
             computedAskHash == askHash,
-            "Provided Ask does not match the computed hash"
+            "Provided hash does not match the computed hash"
         );
         require(
             ask.filler == msg.sender,

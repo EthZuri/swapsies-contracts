@@ -227,13 +227,27 @@ describe("SwapsiesV2_1", function () {
       const askHash = computeAskHash(ask);
 
       // Approve token transfers for both ERC20 and ERC721 tokens
-      await tokenA.connect(alice).approve(swapsies.address, ask.askerERC20.amounts[0]);
-      await tokenC.connect(alice).approve(swapsies.address, ask.askerERC20.amounts[1]);
-      await tokenB.connect(bob).approve(swapsies.address, ask.fillerERC20.amounts[0]);
-      await nftA.connect(alice).approve(swapsies.address, ask.askerERC721.tokenIds[0]);
-      await nftB.connect(alice).approve(swapsies.address, ask.askerERC721.tokenIds[1]);
-      await nftA.connect(bob).approve(swapsies.address, ask.fillerERC721.tokenIds[0]);
-      await nftB.connect(bob).approve(swapsies.address, ask.fillerERC721.tokenIds[1]);
+      await tokenA
+        .connect(alice)
+        .approve(swapsies.address, ask.askerERC20.amounts[0]);
+      await tokenC
+        .connect(alice)
+        .approve(swapsies.address, ask.askerERC20.amounts[1]);
+      await tokenB
+        .connect(bob)
+        .approve(swapsies.address, ask.fillerERC20.amounts[0]);
+      await nftA
+        .connect(alice)
+        .approve(swapsies.address, ask.askerERC721.tokenIds[0]);
+      await nftB
+        .connect(alice)
+        .approve(swapsies.address, ask.askerERC721.tokenIds[1]);
+      await nftA
+        .connect(bob)
+        .approve(swapsies.address, ask.fillerERC721.tokenIds[0]);
+      await nftB
+        .connect(bob)
+        .approve(swapsies.address, ask.fillerERC721.tokenIds[1]);
 
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
       expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
@@ -243,8 +257,12 @@ describe("SwapsiesV2_1", function () {
       expect(await tokenA.balanceOf(alice.address)).to.equal(
         ethers.utils.parseEther("100").sub(ask.askerERC20.amounts[0])
       );
-      expect(await tokenA.balanceOf(bob.address)).to.equal(ask.askerERC20.amounts[0]);
-      expect(await tokenB.balanceOf(alice.address)).to.equal(ask.fillerERC20.amounts[0]);
+      expect(await tokenA.balanceOf(bob.address)).to.equal(
+        ask.askerERC20.amounts[0]
+      );
+      expect(await tokenB.balanceOf(alice.address)).to.equal(
+        ask.fillerERC20.amounts[0]
+      );
       expect(await tokenB.balanceOf(bob.address)).to.equal(
         ethers.utils.parseEther("100").sub(ask.fillerERC20.amounts[0])
       );
@@ -263,113 +281,54 @@ describe("SwapsiesV2_1", function () {
     });
 
     it("Should fail if the ask is not active", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-        await deploySwapsiesFixture();
-
-      // Add the necessary parameters for the createAsk function
-      const askerAmount = ethers.utils.parseEther("0.25");
-      const fillerAmount = ethers.utils.parseEther("0.5");
-
-      // create ask object
-      const data = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
+      const { swapsies, bob, ask } = await deploySwapsiesFixture();
 
       // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
+      const askHash = computeAskHash(ask);
 
-      // Approve token transfers for both ERC20 and ERC721 tokens
-      await tokenA.connect(alice).approve(swapsies.address, askerAmount);
-      await tokenC.connect(alice).approve(swapsies.address, askerAmount);
-      await tokenB.connect(bob).approve(swapsies.address, fillerAmount);
-      await nftA.connect(alice).approve(swapsies.address, 0);
-      await nftB.connect(alice).approve(swapsies.address, 0);
-      await nftA.connect(bob).approve(swapsies.address, 1);
-      await nftB.connect(bob).approve(swapsies.address, 1);
-
+      // No approvals necessary as it is first checked if the hash is active
       // Call the fillAsk function and expect it to be reverted
       expect(await swapsies.isActive(askHash)).to.be.false;
-      await expect(swapsies.connect(bob).fillAsk(askHash)).to.be.ok;
+      await expect(
+        swapsies.connect(bob).fillAsk(askHash, ask)
+      ).to.be.revertedWith("Ask is not active");
     });
 
     it("Should fail if the filler is not the sender", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-        await deploySwapsiesFixture();
-
-      // Add the necessary parameters for the createAsk function
-      const askerAmount = ethers.utils.parseEther("0.25");
-      const fillerAmount = ethers.utils.parseEther("0.5");
-
-      // create ask object
-      const data = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
+      const { swapsies, alice, ask } = await deploySwapsiesFixture();
 
       // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
+      const askHash = computeAskHash(ask);
 
-      // Approve token transfers for both ERC20 and ERC721 tokens
-      await tokenA.connect(alice).approve(swapsies.address, askerAmount);
-      await tokenC.connect(alice).approve(swapsies.address, askerAmount);
-      await tokenB.connect(bob).approve(swapsies.address, fillerAmount);
-      await nftA.connect(alice).approve(swapsies.address, 0);
-      await nftB.connect(alice).approve(swapsies.address, 0);
-      await nftA.connect(bob).approve(swapsies.address, 1);
-      await nftB.connect(bob).approve(swapsies.address, 1);
+      // No approvals necessary as it is first checked if sender is the filler
 
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
-      expect(
-        await swapsies
-          .connect(alice)
-          .createAsk(
-            askHash,
-            data.asker,
-            data.filler,
-            data.askerERC20,
-            data.askerERC721,
-            data.fillerERC20,
-            data.fillerERC721
-          )
-      ).to.be.ok;
+      expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
+      expect(await swapsies.isActive(askHash)).to.be.true;
 
       // Call the fillAsk function with a different sender and expect it to be reverted
-      await expect(swapsies.connect(alice).fillAsk(askHash)).to.be.revertedWith(
-        "Only the designated filler can fill the ask"
-      );
+      await expect(
+        swapsies.connect(alice).fillAsk(askHash, ask)
+      ).to.be.revertedWith("Only the designated filler can fill the ask");
+    });
+
+    it("Should fail if the hash does not match", async function () {
+      const { swapsies, alice, bob, ask } = await deploySwapsiesFixture();
+
+      // compute hash
+      const askHash = computeAskHash(ask);
+      const wrongHash = ethers.utils.id(JSON.stringify(ask));
+
+      // No approvals necessary as it is first checked if sender is the filler
+
+      // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
+      expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
+      expect(await swapsies.isActive(askHash)).to.be.true;
+
+      // Call the fillAsk function with a different sender and expect it to be reverted
+      await expect(
+        swapsies.connect(bob).fillAsk(wrongHash, ask)
+      ).to.be.revertedWith("Only the designated filler can fill the ask");
     });
   });
 });
