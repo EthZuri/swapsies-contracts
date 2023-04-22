@@ -118,101 +118,29 @@ describe("SwapsiesV2_1", function () {
       expect(await swapsies.isActive(askHash)).to.be.true;
 
       // Call the cancelAsk function and check for success (e.g., using events, or checking the activeAsks mapping)
-      await expect(swapsies.connect(alice).cancelAsk(askHash)).to.be.ok;
+      expect(await swapsies.connect(alice).cancelAsk(ask)).to.be.ok;
     });
 
     it("Should fail if the ask is not active", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-        await deploySwapsiesFixture();
-
-      // Add the necessary parameters for the createAsk function
-      const askerAmount = ethers.utils.parseEther("0.25");
-      const fillerAmount = ethers.utils.parseEther("0.5");
-
-      // create ask object
-
-      const data = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
+      const { swapsies, alice, ask } = await deploySwapsiesFixture();
 
       // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
-
+      const askHash = computeAskHash(ask);
       expect(await swapsies.isActive(askHash)).to.be.false;
 
       // Call the cancelAsk function and expect it to be reverted
-      await expect(
-        swapsies.connect(alice).cancelAsk(askHash)
-      ).to.be.revertedWith("Ask is not active");
+      await expect(swapsies.connect(alice).cancelAsk(ask)).to.be.revertedWith(
+        "Ask is not active"
+      );
     });
 
     it("Should fail if the asker is not the sender", async function () {
-      const { swapsies, tokenA, tokenB, tokenC, nftA, nftB, alice, bob } =
-        await deploySwapsiesFixture();
-
-      // Add the necessary parameters for the createAsk function
-      const askerAmount = ethers.utils.parseEther("0.25");
-      const fillerAmount = ethers.utils.parseEther("0.5");
-
-      // create ask object
-
-      const data = {
-        asker: alice.address,
-        filler: bob.address,
-        askerERC20: {
-          tokens: [tokenA.address, tokenC.address],
-          amounts: [askerAmount, askerAmount],
-        },
-        askerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [0, 0],
-        },
-        fillerERC20: {
-          tokens: [tokenB.address],
-          amounts: [fillerAmount],
-        },
-        fillerERC721: {
-          tokens: [nftA.address, nftB.address],
-          tokenIds: [1, 1],
-        },
-      };
-
-      // compute hash
-      const askHash = ethers.utils.id(JSON.stringify(data));
+      const { swapsies, alice, bob, ask } = await deploySwapsiesFixture();
 
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
-      expect(
-        await swapsies
-          .connect(alice)
-          .createAsk(
-            askHash,
-            data.asker,
-            data.filler,
-            data.askerERC20,
-            data.askerERC721,
-            data.fillerERC20,
-            data.fillerERC721
-          )
-      ).to.be.ok;
+      expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
       // Call the cancelAsk function with a different sender and expect it to be reverted
-      await expect(swapsies.connect(bob).cancelAsk(askHash)).to.be.revertedWith(
+      await expect(swapsies.connect(bob).cancelAsk(ask)).to.be.revertedWith(
         "Only the asker can cancel the ask"
       );
     });
@@ -252,7 +180,7 @@ describe("SwapsiesV2_1", function () {
       // Call the createAsk function and check for success (e.g., using events, or checking the asks mapping)
       expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
 
-      expect(await swapsies.connect(bob).fillAsk(askHash, ask)).to.be.ok;
+      expect(await swapsies.connect(bob).fillAsk(ask)).to.be.ok;
       // Check ERC20 token balances after filling the ask
       expect(await tokenA.balanceOf(alice.address)).to.equal(
         ethers.utils.parseEther("100").sub(ask.askerERC20.amounts[0])
@@ -289,9 +217,9 @@ describe("SwapsiesV2_1", function () {
       // No approvals necessary as it is first checked if the hash is active
       // Call the fillAsk function and expect it to be reverted
       expect(await swapsies.isActive(askHash)).to.be.false;
-      await expect(
-        swapsies.connect(bob).fillAsk(askHash, ask)
-      ).to.be.revertedWith("Ask is not active");
+      await expect(swapsies.connect(bob).fillAsk(ask)).to.be.revertedWith(
+        "Ask is not active"
+      );
     });
 
     it("Should fail if the filler is not the sender", async function () {
@@ -307,9 +235,9 @@ describe("SwapsiesV2_1", function () {
       expect(await swapsies.isActive(askHash)).to.be.true;
 
       // Call the fillAsk function with a different sender and expect it to be reverted
-      await expect(
-        swapsies.connect(alice).fillAsk(askHash, ask)
-      ).to.be.revertedWith("Only the designated filler can fill the ask");
+      await expect(swapsies.connect(alice).fillAsk(ask)).to.be.revertedWith(
+        "Only the designated filler can fill the ask"
+      );
     });
 
     it("Should fail if the hash does not match", async function () {
@@ -325,10 +253,19 @@ describe("SwapsiesV2_1", function () {
       expect(await swapsies.connect(alice).createAsk(ask)).to.be.ok;
       expect(await swapsies.isActive(askHash)).to.be.true;
 
+      const ask2: Ask = {
+        ...ask,
+        asker: ask.filler,
+        filler: ask.asker,
+      };
+
+      const ask2Hash = computeAskHash(ask2);
+      expect(await swapsies.isActive(ask2Hash)).to.be.false;
+
       // Call the fillAsk function with a different sender and expect it to be reverted
       await expect(
-        swapsies.connect(bob).fillAsk(wrongHash, ask)
-      ).to.be.revertedWith("Only the designated filler can fill the ask");
+        swapsies.connect(bob).fillAsk(ask2)
+      ).to.be.revertedWith("Ask is not active");
     });
   });
 });

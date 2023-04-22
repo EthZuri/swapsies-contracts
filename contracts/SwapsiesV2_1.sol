@@ -28,9 +28,7 @@ contract SwapsiesV2_1 {
 
     mapping(bytes32 => bool) private activeAsks;
 
-    function createAsk(
-        Ask calldata ask
-    ) external returns (bytes32) {
+    function createAsk(Ask calldata ask) external returns (bytes32) {
         require(ask.asker == msg.sender, "The asker has to be the sender");
         // Ensure the lengths of the arrays in the bundles are the same
         require(
@@ -49,7 +47,7 @@ contract SwapsiesV2_1 {
             ask.fillerERC721.tokens.length == ask.fillerERC721.tokenIds.length,
             "Filler's ERC721 tokens and tokenIds arrays must have the same length"
         );
-        
+
         // Compute the ask hash
         bytes32 askHash = keccak256(abi.encode(ask));
 
@@ -62,40 +60,22 @@ contract SwapsiesV2_1 {
         return askHash;
     }
 
-    modifier isAskActive(bytes32 askHash) {
-        require(activeAsks[askHash], "Ask is not active");
-        _;
-    }
-
     function isActive(bytes32 askHash) public view returns (bool) {
         return activeAsks[askHash];
     }
 
-    function cancelAsk(
-        bytes32 askHash,
-        Ask calldata ask
-    ) external isAskActive(askHash) {
+    function cancelAsk(Ask calldata ask) external {
         // Verify that the provided Ask struct matches the askHash
-        bytes32 computedAskHash = keccak256(abi.encode(ask));
-        require(
-            computedAskHash == askHash,
-            "Provided hash does not match the computed hash"
-        );
+        bytes32 askHash = keccak256(abi.encode(ask));
+        require(activeAsks[askHash], "Ask is not active");
         require(ask.asker == msg.sender, "Only the asker can cancel the ask");
-
         delete activeAsks[askHash];
     }
 
-    function fillAsk(
-        bytes32 askHash,
-        Ask calldata ask
-    ) external isAskActive(askHash) {
+    function fillAsk(Ask calldata ask) external {
         // Verify that the provided Ask struct matches the askHash
-        bytes32 computedAskHash = keccak256(abi.encode(ask));
-        require(
-            computedAskHash == askHash,
-            "Provided hash does not match the computed hash"
-        );
+        bytes32 askHash = keccak256(abi.encode(ask));
+        require(activeAsks[askHash], "Ask is not active");
         require(
             ask.filler == msg.sender,
             "Only the designated filler can fill the ask"
